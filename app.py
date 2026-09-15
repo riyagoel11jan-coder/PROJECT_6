@@ -5,14 +5,36 @@ import json
 import os
 import sys
 
-import numpy as np
-import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 
 # =========================================================
-# APP CONFIG
+# SAFE DEPENDENCY LOADING
+# =========================================================
+
+try:
+    import pandas as pd
+    import numpy as np
+
+except ModuleNotFoundError as exc:
+
+    st.set_page_config(
+        page_title="Rossmann Retail Intelligence",
+        page_icon="📈",
+        layout="wide"
+    )
+
+    st.error(
+        f"Missing package: {exc.name}. "
+        "Add streamlit, pandas and numpy to requirements.txt, "
+        "commit the file to GitHub, then reboot the app."
+    )
+
+    st.stop()
+
+
+# =========================================================
+# APP CONFIGURATION
 # =========================================================
 
 st.set_page_config(
@@ -22,55 +44,37 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-ROOT = Path(__file__).resolve().parent
+
+ROOT = (
+    Path(__file__)
+    .resolve()
+    .parent
+)
+
 
 BURGUNDY = "#4A2630"
-BURGUNDY_DARK = "#241418"
-BURGUNDY_SOFT = "#6B3A44"
+DARK = "#241418"
 COPPER = "#B87A49"
-COPPER_LIGHT = "#E6C4A1"
 IVORY = "#F7F4F0"
-PAPER = "#FFFFFF"
 TEXT = "#2F2928"
-MUTED = "#766B67"
-GRID = "#ECE6E1"
-SAGE = "#708075"
-ROSE = "#9A626C"
-DANGER = "#A65347"
-SLATE = "#68717A"
 
-EXCLUDE_DIRS = {
+
+EXCLUDED = {
     ".venv",
     "venv",
     ".git",
     "__pycache__",
     "site-packages",
     "node_modules",
-    ".ipynb_checkpoints",
+    ".ipynb_checkpoints"
 }
 
 
 # =========================================================
-# SAFE HTML
+# PROFESSIONAL VISUAL THEME
 # =========================================================
 
-def html(content):
-
-    content = content.strip()
-
-    if hasattr(st, "html"):
-
-        st.html(content)
-
-    else:
-
-        st.markdown(
-            content,
-            unsafe_allow_html=True,
-        )
-
-
-html(
+st.markdown(
     f"""
     <style>
 
@@ -86,17 +90,16 @@ html(
     }}
 
     [data-testid="stHeader"] {{
-        background: rgba(247,244,240,.94);
-        backdrop-filter: blur(8px);
+        background: rgba(247,244,240,.95);
         border-bottom: 1px solid rgba(70,50,45,.07);
     }}
 
     [data-testid="stSidebar"] {{
         background:
             radial-gradient(
-                circle at 12% 8%,
-                rgba(184,122,73,.15),
-                transparent 27%
+                circle at 15% 8%,
+                rgba(184,122,73,.16),
+                transparent 28%
             ),
             linear-gradient(
                 180deg,
@@ -106,11 +109,22 @@ html(
             );
 
         border-right:
-            1px solid rgba(255,255,255,.06);
+            1px solid
+            rgba(255,255,255,.06);
     }}
 
     [data-testid="stSidebar"] * {{
-        color: #F4ECE8;
+        color: #F5EEEA;
+    }}
+
+    [data-testid="stSidebar"] h1 {{
+        font-family:
+            Georgia,
+            "Times New Roman",
+            serif;
+
+        color:
+            #FFFFFF !important;
     }}
 
     [data-testid="stSidebar"]
@@ -120,30 +134,27 @@ html(
             rgba(255,255,255,.035);
 
         border:
-            1px solid rgba(255,255,255,.055);
+            1px solid
+            rgba(255,255,255,.05);
 
-        border-radius: 9px;
+        border-radius:
+            9px;
 
         padding:
             .5rem .62rem;
 
         margin-bottom:
-            .26rem;
+            .25rem;
     }}
 
     [data-testid="stSidebar"]
     div[role="radiogroup"] label:hover {{
 
         background:
-            rgba(255,255,255,.075);
+            rgba(255,255,255,.08);
 
         border-color:
             rgba(230,196,161,.22);
-    }}
-
-    [data-testid="stSidebar"] hr {{
-        border-color:
-            rgba(255,255,255,.1);
     }}
 
     h1,
@@ -155,355 +166,15 @@ html(
             serif;
 
         color:
-            {BURGUNDY_DARK};
+            {DARK};
 
         letter-spacing:
             -.015em;
     }}
 
-    .hero {{
-        position:
-            relative;
-
-        overflow:
-            hidden;
-
-        padding:
-            2.45rem 2.65rem 2.3rem;
-
-        border-radius:
-            18px;
-
-        background:
-            radial-gradient(
-                circle at 86% 12%,
-                rgba(230,196,161,.16),
-                transparent 27%
-            ),
-            linear-gradient(
-                135deg,
-                #211217 0%,
-                #4A2630 55%,
-                #6B3A44 100%
-            );
-
-        box-shadow:
-            0 18px 45px
-            rgba(53,29,36,.15);
-
-        margin:
-            .25rem 0 1rem;
-    }}
-
-    .hero::after {{
-        content:
-            "";
-
-        position:
-            absolute;
-
-        bottom:
-            0;
-
-        left:
-            0;
-
-        width:
-            43%;
-
-        height:
-            4px;
-
-        background:
-            linear-gradient(
-                90deg,
-                {COPPER},
-                transparent
-            );
-    }}
-
-    .hero-kicker {{
-        color:
-            {COPPER_LIGHT};
-
-        font-size:
-            .66rem;
-
-        font-weight:
-            800;
-
-        letter-spacing:
-            .18em;
-
-        text-transform:
-            uppercase;
-
-        margin-bottom:
-            .7rem;
-    }}
-
-    .hero-title {{
-        max-width:
-            940px;
-
-        color:
-            #FFFFFF;
-
-        font-family:
-            Georgia,
-            "Times New Roman",
-            serif;
-
-        font-size:
-            2.55rem;
-
-        line-height:
-            1.15;
-
-        font-weight:
-            500;
-
-        letter-spacing:
-            -.025em;
-    }}
-
-    .hero-subtitle {{
-        max-width:
-            1020px;
-
-        margin-top:
-            .9rem;
-
-        color:
-            #EEE5E1;
-
-        font-size:
-            .97rem;
-
-        line-height:
-            1.7;
-    }}
-
-    .hero-meta {{
-        display:
-            flex;
-
-        gap:
-            .5rem;
-
-        flex-wrap:
-            wrap;
-
-        margin-top:
-            1.25rem;
-    }}
-
-    .hero-chip {{
-        padding:
-            .4rem .68rem;
-
-        border:
-            1px solid
-            rgba(230,196,161,.27);
-
-        border-radius:
-            999px;
-
-        background:
-            rgba(255,255,255,.045);
-
-        color:
-            #F3E9E4;
-
-        font-size:
-            .68rem;
-    }}
-
-    .section-eyebrow {{
-        color:
-            {COPPER};
-
-        font-size:
-            .64rem;
-
-        font-weight:
-            800;
-
-        letter-spacing:
-            .15em;
-
-        text-transform:
-            uppercase;
-
-        margin-top:
-            .25rem;
-    }}
-
-    .section-title {{
-        color:
-            {BURGUNDY_DARK};
-
-        font-family:
-            Georgia,
-            "Times New Roman",
-            serif;
-
-        font-size:
-            1.65rem;
-
-        font-weight:
-            600;
-
-        margin-top:
-            .15rem;
-    }}
-
-    .section-copy {{
-        max-width:
-            980px;
-
-        color:
-            {MUTED};
-
-        font-size:
-            .84rem;
-
-        line-height:
-            1.6;
-
-        margin:
-            .2rem 0 .9rem;
-    }}
-
-    .summary-grid {{
-        display:
-            grid;
-
-        grid-template-columns:
-            repeat(3,1fr);
-
-        background:
-            #FFFFFF;
-
-        border:
-            1px solid #DED6CF;
-
-        border-radius:
-            12px;
-
-        overflow:
-            hidden;
-
-        margin:
-            .45rem 0 1.15rem;
-
-        box-shadow:
-            0 6px 18px
-            rgba(61,45,38,.035);
-    }}
-
-    .summary-cell {{
-        padding:
-            1rem 1.1rem;
-
-        border-right:
-            1px solid #EEE8E3;
-    }}
-
-    .summary-cell:last-child {{
-        border-right:
-            none;
-    }}
-
-    .summary-label {{
-        color:
-            {COPPER};
-
-        font-size:
-            .61rem;
-
-        font-weight:
-            800;
-
-        letter-spacing:
-            .12em;
-
-        text-transform:
-            uppercase;
-
-        margin-bottom:
-            .32rem;
-    }}
-
-    .summary-text {{
-        color:
-            #4F4643;
-
-        font-size:
-            .78rem;
-
-        line-height:
-            1.55;
-    }}
-
-    .callout {{
-        background:
-            #FFFFFF;
-
-        border:
-            1px solid #DED6CF;
-
-        border-left:
-            4px solid {COPPER};
-
-        border-radius:
-            0 11px 11px 0;
-
-        padding:
-            .95rem 1rem;
-
-        margin:
-            .55rem 0 1rem;
-
-        box-shadow:
-            0 4px 14px
-            rgba(61,45,38,.03);
-    }}
-
-    .callout-title {{
-        color:
-            {COPPER};
-
-        font-size:
-            .61rem;
-
-        font-weight:
-            800;
-
-        letter-spacing:
-            .11em;
-
-        text-transform:
-            uppercase;
-
-        margin-bottom:
-            .3rem;
-    }}
-
-    .callout-text {{
-        color:
-            #4E4542;
-
-        font-size:
-            .82rem;
-
-        line-height:
-            1.62;
-    }}
-
     div[data-testid="stMetric"] {{
         min-height:
-            116px;
+            108px;
 
         background:
             #FFFFFF;
@@ -515,11 +186,11 @@ html(
             12px;
 
         padding:
-            .88rem 1rem;
+            .85rem 1rem;
 
         box-shadow:
             0 7px 18px
-            rgba(61,45,38,.035);
+            rgba(61,45,38,.04);
     }}
 
     div[data-testid="stMetric"]::before {{
@@ -536,7 +207,7 @@ html(
             3px;
 
         border-radius:
-            6px;
+            8px;
 
         background:
             {COPPER};
@@ -545,17 +216,9 @@ html(
             .45rem;
     }}
 
-    div[data-testid="stMetricLabel"] {{
-        color:
-            #875A3B;
-
-        font-size:
-            .72rem;
-    }}
-
     div[data-testid="stMetricValue"] {{
         color:
-            {BURGUNDY_DARK};
+            {DARK};
 
         font-family:
             Georgia,
@@ -563,23 +226,31 @@ html(
             serif;
 
         font-size:
-            1.43rem;
+            1.4rem;
+    }}
+
+    div[data-testid="stMetricLabel"] {{
+        color:
+            #81563B;
+
+        font-size:
+            .72rem;
     }}
 
     div[data-testid="stExpander"] {{
-        background:
-            #FFFFFF;
-
         border:
             1px solid #DED6CF;
 
         border-radius:
             11px;
+
+        background:
+            #FFFFFF;
     }}
 
     .stTabs [data-baseweb="tab-list"] {{
         gap:
-            .32rem;
+            .3rem;
 
         border-bottom:
             1px solid #E5DDD7;
@@ -596,13 +267,10 @@ html(
             8px 8px 0 0;
 
         padding:
-            0 .88rem;
+            0 .9rem;
 
         color:
             #665B57;
-
-        font-size:
-            .78rem;
     }}
 
     .stTabs [aria-selected="true"] {{
@@ -648,7 +316,7 @@ html(
     .stButton > button:hover,
     .stDownloadButton > button:hover {{
         background:
-            {BURGUNDY_SOFT};
+            #6B3A44;
 
         color:
             #FFFFFF;
@@ -667,34 +335,9 @@ html(
             hidden;
     }}
 
-    @media (max-width:900px) {{
-
-        .hero {{
-            padding:
-                1.65rem 1.35rem;
-        }}
-
-        .hero-title {{
-            font-size:
-                2rem;
-        }}
-
-        .summary-grid {{
-            grid-template-columns:
-                1fr;
-        }}
-
-        .summary-cell {{
-            border-right:
-                none;
-
-            border-bottom:
-                1px solid #EEE8E3;
-        }}
-    }}
-
     </style>
-    """
+    """,
+    unsafe_allow_html=True
 )
 
 
@@ -705,21 +348,29 @@ html(
 @st.cache_data(
     show_spinner=False
 )
-def scan_files(root):
+def scan_files(
+    root
+):
 
-    files = []
+    found = []
 
-    for current, dirs, names in os.walk(root):
+
+    for current, dirs, names in os.walk(
+        root
+    ):
 
         dirs[:] = [
             directory
-            for directory in dirs
-            if directory not in EXCLUDE_DIRS
+            for directory
+            in dirs
+            if directory
+            not in EXCLUDED
         ]
+
 
         for name in names:
 
-            files.append(
+            found.append(
                 str(
                     Path(current)
                     /
@@ -727,60 +378,70 @@ def scan_files(root):
                 )
             )
 
-    return files
+
+    return found
 
 
-def project_files(
+def files(
     suffixes=None
 ):
 
-    files = [
+    values = [
         Path(path)
-        for path in scan_files(
+        for path
+        in scan_files(
             str(ROOT)
         )
     ]
 
+
     if suffixes is None:
 
-        return files
+        return values
+
 
     return [
         path
-        for path in files
+        for path
+        in values
         if path.suffix.lower()
         in suffixes
     ]
 
 
-def newest_file(
+def newest(
     *names
 ):
 
     wanted = {
         name.lower()
-        for name in names
+        for name
+        in names
     }
 
-    matches = [
+
+    found = [
         path
-        for path in project_files()
+        for path
+        in files()
         if path.name.lower()
         in wanted
     ]
 
-    return (
-        max(
-            matches,
-            key=lambda path:
-                path.stat().st_mtime
-        )
-        if matches
-        else None
+
+    if not found:
+
+        return None
+
+
+    return max(
+        found,
+        key=lambda path:
+            path.stat().st_mtime
     )
 
 
-def csv_by_columns(
+def csv_with(
     required,
     preferred=()
 ):
@@ -789,25 +450,30 @@ def csv_by_columns(
         required
     )
 
+
     preferred = {
         name.lower()
-        for name in preferred
+        for name
+        in preferred
     }
 
-    candidates = project_files(
+
+    candidates = files(
         {".csv"}
     )
 
+
     candidates.sort(
         key=lambda path:
-            (
-                path.name.lower()
-                not in preferred,
+        (
+            path.name.lower()
+            not in preferred,
 
-                -
-                path.stat().st_mtime
-            )
+            -
+            path.stat().st_mtime
+        )
     )
+
 
     for path in candidates:
 
@@ -822,20 +488,23 @@ def csv_by_columns(
                 .columns
             )
 
+
             if required.issubset(
                 columns
             ):
 
                 return path
 
+
         except Exception:
 
             pass
 
+
     return None
 
 
-def parquet_by_columns(
+def parquet_with(
     required
 ):
 
@@ -843,8 +512,9 @@ def parquet_by_columns(
         required
     )
 
+
     candidates = sorted(
-        project_files(
+        files(
             {".parquet"}
         ),
 
@@ -852,6 +522,7 @@ def parquet_by_columns(
             -
             path.stat().st_mtime
     )
+
 
     for path in candidates:
 
@@ -864,20 +535,27 @@ def parquet_by_columns(
                 .columns
             )
 
+
             if required.issubset(
                 columns
             ):
 
                 return path
 
+
         except Exception:
 
             pass
 
+
     return None
 
 
-EDA_PARQUET = parquet_by_columns(
+# =========================================================
+# FIND PROJECT ASSETS
+# =========================================================
+
+EDA_PARQUET = parquet_with(
     {
         "Store",
         "Date",
@@ -887,7 +565,7 @@ EDA_PARQUET = parquet_by_columns(
 )
 
 
-TRAIN = csv_by_columns(
+TRAIN = csv_with(
     {
         "Store",
         "Date",
@@ -905,7 +583,7 @@ TRAIN = csv_by_columns(
 )
 
 
-STORE = csv_by_columns(
+STORE = csv_with(
     {
         "Store",
         "StoreType",
@@ -920,63 +598,63 @@ STORE = csv_by_columns(
 )
 
 
-FORECAST = newest_file(
+FORECAST = newest(
     "rossmann_42_day_forecast_with_intervals.csv",
     "rossmann_42_day_forecast.csv",
     "future_forecast.csv"
 )
 
 
-VALIDATION = newest_file(
+VALIDATION = newest(
     "validation_predictions.csv"
 )
 
 
-MODEL = newest_file(
+MODEL = newest(
     "rossmann_lstm_model.h5",
     "rossmann_lstm.keras"
 )
 
 
-FSCALER = newest_file(
+FSCALER = newest(
     "feature_scaler.pkl",
     "feature_scaler.joblib"
 )
 
 
-TSCALER = newest_file(
+TSCALER = newest(
     "target_scaler.pkl",
     "target_scaler.joblib"
 )
 
 
-SCHEMA = newest_file(
+SCHEMA = newest(
     "feature_schema.json",
     "forecast_contract.json"
 )
 
 
-METADATA = newest_file(
+METADATA = newest(
     "metadata.json"
 )
 
 
-METRICS = newest_file(
+METRICS = newest(
     "evaluation_metrics.json"
 )
 
 
-FIMPORT = newest_file(
+FIMPORT = newest(
     "feature_importance.csv"
 )
 
 
-GIMPORT = newest_file(
+GIMPORT = newest(
     "feature_group_importance.csv"
 )
 
 
-METHOD = newest_file(
+METHOD = newest(
     "forecast_methodology.txt"
 )
 
@@ -1048,17 +726,19 @@ def safe_csv(
 
     try:
 
-        return (
-            read_csv(
+        if path:
+
+            return read_csv(
                 str(path)
             )
-            if path
-            else None
-        )
+
 
     except Exception:
 
-        return None
+        pass
+
+
+    return None
 
 
 def safe_json(
@@ -1067,21 +747,23 @@ def safe_json(
 
     try:
 
-        return (
-            read_json(
+        if path:
+
+            return read_json(
                 str(path)
             )
-            if path
-            else {}
-        )
+
 
     except Exception:
 
-        return {}
+        pass
+
+
+    return {}
 
 
 # =========================================================
-# DATA PREPARATION
+# PREPARE EDA DATA
 # =========================================================
 
 def prepare_eda():
@@ -1102,6 +784,7 @@ def prepare_eda():
                 .copy()
             )
 
+
         except Exception:
 
             data = None
@@ -1121,6 +804,7 @@ def prepare_eda():
 
         data = train.copy()
 
+
         store = safe_csv(
             STORE
         )
@@ -1131,15 +815,16 @@ def prepare_eda():
             and
             "Store"
             in store.columns
+            and
+            "Store"
+            in data.columns
         ):
 
             data = data.merge(
                 store.drop_duplicates(
                     "Store"
                 ),
-
                 on="Store",
-
                 how="left"
             )
 
@@ -1282,6 +967,10 @@ def prepare_eda():
 
     return data
 
+
+# =========================================================
+# PREPARE FORECAST DATA
+# =========================================================
 
 def prepare_forecast():
 
@@ -1529,7 +1218,7 @@ MODEL_READY = all(
 
 
 # =========================================================
-# PRESENTATION HELPERS
+# FORMATTING HELPERS
 # =========================================================
 
 def fmt_number(
@@ -1543,17 +1232,22 @@ def fmt_number(
             value
         )
 
-        return (
-            f"{value:,.{decimals}f}"
-            if np.isfinite(
-                value
+
+        if np.isfinite(
+            value
+        ):
+
+            return (
+                f"{value:,.{decimals}f}"
             )
-            else "—"
-        )
+
 
     except Exception:
 
-        return "—"
+        pass
+
+
+    return "—"
 
 
 def fmt_pct(
@@ -1567,236 +1261,110 @@ def fmt_pct(
             value
         )
 
-        return (
-            f"{value:,.{decimals}f}%"
-            if np.isfinite(
-                value
+
+        if np.isfinite(
+            value
+        ):
+
+            return (
+                f"{value:,.{decimals}f}%"
             )
-            else "—"
-        )
+
 
     except Exception:
 
-        return "—"
+        pass
 
 
-def style_chart(
-    fig,
-    height=420,
-    hovermode="closest"
-):
-
-    fig.update_layout(
-        height=
-            height,
-
-        paper_bgcolor=
-            PAPER,
-
-        plot_bgcolor=
-            PAPER,
-
-        margin=dict(
-            l=18,
-            r=18,
-            t=52,
-            b=18
-        ),
-
-        hovermode=
-            hovermode,
-
-        font=dict(
-            family=
-                "Arial",
-
-            color=
-                TEXT,
-
-            size=
-                12
-        ),
-
-        legend=dict(
-            orientation=
-                "h",
-
-            y=
-                1.08,
-
-            bgcolor=
-                "rgba(0,0,0,0)"
-        ),
-
-        hoverlabel=dict(
-            bgcolor=
-                "#FFFFFF",
-
-            bordercolor=
-                "#D8CEC7"
-        )
-    )
+    return "—"
 
 
-    fig.update_xaxes(
-        gridcolor=
-            GRID,
-
-        zeroline=
-            False
-    )
-
-
-    fig.update_yaxes(
-        gridcolor=
-            GRID,
-
-        zeroline=
-            False
-    )
-
-
-    return fig
-
-
-def hero(
+def page_intro(
     title,
     subtitle,
-    chips
+    eyebrow
 ):
 
-    chip_html = "".join(
-        f'<span class="hero-chip">{chip}</span>'
-        for chip in chips
+    st.caption(
+        eyebrow.upper()
     )
 
 
-    html(
-        f"""
-        <div class="hero">
-
-            <div class="hero-kicker">
-                Rossmann Retail Decision Intelligence
-            </div>
-
-            <div class="hero-title">
-                {title}
-            </div>
-
-            <div class="hero-subtitle">
-                {subtitle}
-            </div>
-
-            <div class="hero-meta">
-                {chip_html}
-            </div>
-
-        </div>
-        """
+    st.title(
+        title
     )
 
 
-def section(
-    eyebrow,
-    title,
-    copy=""
-):
-
-    html(
-        f"""
-        <div class="section-eyebrow">
-            {eyebrow}
-        </div>
-
-        <div class="section-title">
-            {title}
-        </div>
-
-        <div class="section-copy">
-            {copy}
-        </div>
-        """
+    st.write(
+        subtitle
     )
 
 
-def summary_grid(
+    st.divider()
+
+
+def context_panel(
     purpose,
     questions,
-    use
+    decision
 ):
 
-    html(
-        f"""
-        <div class="summary-grid">
+    with st.container(
+        border=True
+    ):
 
-            <div class="summary-cell">
-
-                <div class="summary-label">
-                    Purpose
-                </div>
-
-                <div class="summary-text">
-                    {purpose}
-                </div>
-
-            </div>
-
-            <div class="summary-cell">
-
-                <div class="summary-label">
-                    Questions answered
-                </div>
-
-                <div class="summary-text">
-                    {questions}
-                </div>
-
-            </div>
-
-            <div class="summary-cell">
-
-                <div class="summary-label">
-                    Decision use
-                </div>
-
-                <div class="summary-text">
-                    {use}
-                </div>
-
-            </div>
-
-        </div>
-        """
-    )
+        column_1, column_2, column_3 = (
+            st.columns(
+                [
+                    1,
+                    1.35,
+                    1
+                ]
+            )
+        )
 
 
-def callout(
-    title,
-    text
-):
+        with column_1:
 
-    html(
-        f"""
-        <div class="callout">
+            st.markdown(
+                "**Purpose**"
+            )
 
-            <div class="callout-title">
-                {title}
-            </div>
+            st.write(
+                purpose
+            )
 
-            <div class="callout-text">
-                {text}
-            </div>
 
-        </div>
-        """
-    )
+        with column_2:
+
+            st.markdown(
+                "**Questions answered**"
+            )
+
+
+            for question in questions:
+
+                st.markdown(
+                    f"- {question}"
+                )
+
+
+        with column_3:
+
+            st.markdown(
+                "**Decision use**"
+            )
+
+            st.write(
+                decision
+            )
 
 
 def explain(
     what,
     reading,
     why,
-    use
+    decision
 ):
 
     with st.expander(
@@ -1845,21 +1413,21 @@ def explain(
             )
 
             st.write(
-                use
+                decision
             )
 
 
 def top_share(
-    store_df,
+    frame,
     fraction
 ):
 
-    n = max(
+    number_of_stores = max(
         1,
         int(
             np.ceil(
                 len(
-                    store_df
+                    frame
                 )
                 *
                 fraction
@@ -1869,16 +1437,23 @@ def top_share(
 
 
     total = (
-        store_df[
+        frame[
             "PredictedSales"
         ]
         .sum()
     )
 
 
+    if total == 0:
+
+        return np.nan
+
+
     return (
-        store_df
-        .head(n)[
+        frame
+        .head(
+            number_of_stores
+        )[
             "PredictedSales"
         ]
         .sum()
@@ -1886,8 +1461,56 @@ def top_share(
         total
         *
         100
-        if total
-        else np.nan
+    )
+
+
+def line_chart(
+    data,
+    x,
+    y,
+    height=400
+):
+
+    st.line_chart(
+        data=
+            data,
+
+        x=
+            x,
+
+        y=
+            y,
+
+        height=
+            height,
+
+        use_container_width=
+            True
+    )
+
+
+def bar_chart(
+    data,
+    x,
+    y,
+    height=360
+):
+
+    st.bar_chart(
+        data=
+            data,
+
+        x=
+            x,
+
+        y=
+            y,
+
+        height=
+            height,
+
+        use_container_width=
+            True
     )
 
 
@@ -1902,10 +1525,11 @@ def compute_validation_metrics():
         return {}
 
 
-    actual_col = next(
+    actual_column = next(
         (
             column
-            for column in [
+            for column
+            in [
                 "ActualSales",
                 "Actual",
                 "Sales"
@@ -1917,10 +1541,11 @@ def compute_validation_metrics():
     )
 
 
-    pred_col = next(
+    predicted_column = next(
         (
             column
-            for column in [
+            for column
+            in [
                 "PredictedSales",
                 "Prediction",
                 "Predicted"
@@ -1933,9 +1558,9 @@ def compute_validation_metrics():
 
 
     if (
-        actual_col is None
+        actual_column is None
         or
-        pred_col is None
+        predicted_column is None
     ):
 
         return {}
@@ -1943,15 +1568,15 @@ def compute_validation_metrics():
 
     actual = pd.to_numeric(
         validation[
-            actual_col
+            actual_column
         ],
         errors="coerce"
     )
 
 
-    pred = pd.to_numeric(
+    predicted = pd.to_numeric(
         validation[
-            pred_col
+            predicted_column
         ],
         errors="coerce"
     )
@@ -1960,7 +1585,7 @@ def compute_validation_metrics():
     valid = (
         actual.notna()
         &
-        pred.notna()
+        predicted.notna()
     )
 
 
@@ -1974,8 +1599,8 @@ def compute_validation_metrics():
     )
 
 
-    pred = (
-        pred[
+    predicted = (
+        predicted[
             valid
         ]
         .to_numpy(
@@ -1992,7 +1617,7 @@ def compute_validation_metrics():
 
 
     error = (
-        pred
+        predicted
         -
         actual
     )
@@ -2066,7 +1691,7 @@ def compute_validation_metrics():
                     (
                         actual
                         -
-                        pred
+                        predicted
                     )
                     **
                     2
@@ -2130,6 +1755,7 @@ def metric_value(
                 ]
             )
 
+
         except Exception:
 
             pass
@@ -2174,20 +1800,15 @@ with st.sidebar:
 
 
     st.caption(
-        "Sales Forecasting & Retail Decision Intelligence"
+        "Sales Forecasting · Retail Analytics · Decision Support"
     )
 
 
-    st.markdown("")
-
-
-    st.caption(
-        "WORKSPACES"
-    )
+    st.divider()
 
 
     page = st.radio(
-        "Navigation",
+        "Workspace",
 
         [
             "Executive Overview",
@@ -2197,10 +1818,7 @@ with st.sidebar:
             "Model Governance",
             "Forecast Service",
             "Application Governance"
-        ],
-
-        label_visibility=
-            "collapsed"
+        ]
     )
 
 
@@ -2212,12 +1830,12 @@ with st.sidebar:
     )
 
 
-    status_1, status_2 = (
+    left, right = (
         st.columns(2)
     )
 
 
-    status_1.metric(
+    left.metric(
         "History",
         (
             "Ready"
@@ -2227,7 +1845,7 @@ with st.sidebar:
     )
 
 
-    status_2.metric(
+    right.metric(
         "Forecast",
         (
             "Ready"
@@ -2254,66 +1872,65 @@ with st.sidebar:
 
 if page == "Executive Overview":
 
-    hero(
-        "Sales Forecasting & Retail Decision Intelligence",
+    page_intro(
+        "Rossmann Retail Intelligence & Sales Forecasting",
 
         (
-            "A unified management environment connecting historical retail "
-            "behaviour with six-week Store-level forecasting, uncertainty, "
-            "prioritisation and model governance."
+            "Historical demand evidence, six-week forecasting, "
+            "Store prioritisation and model governance "
+            "in one management-facing application."
         ),
 
-        [
-            "Historical Intelligence",
-            "42-Day Forecast",
-            "Store Prioritisation",
-            "Uncertainty-Aware Planning"
-        ]
+        "Retail decision intelligence platform"
     )
 
 
-    summary_grid(
+    context_panel(
         (
             "Connect observed retail behaviour "
-            "with forward-looking demand."
+            "with forward demand."
         ),
 
-        (
-            "What shaped demand? When will demand peak? "
-            "Which Stores matter most? Where is forecast risk higher?"
-        ),
+        [
+            "What shaped historical demand?",
+            "When will demand peak?",
+            "Which Stores matter most?",
+            "Where is forecast risk higher?"
+        ],
 
         (
-            "Demand readiness, Store prioritisation, commercial review "
+            "Demand readiness, Store prioritisation "
             "and forecast governance."
         )
     )
 
 
-    historical = None
+    historical = (
+        eda.copy()
+        if EDA_READY
+        else None
+    )
 
 
-    if EDA_READY:
+    if (
+        historical is not None
+        and
+        "Open"
+        in historical.columns
+    ):
 
         historical = (
-            eda.copy()
+            historical[
+                historical[
+                    "Open"
+                ]
+                .fillna(0)
+                .eq(1)
+            ]
         )
 
 
-        if "Open" in historical.columns:
-
-            historical = (
-                historical[
-                    historical[
-                        "Open"
-                    ]
-                    .fillna(0)
-                    .eq(1)
-                ]
-            )
-
-
-    k1, k2, k3, k4, k5 = (
+    metric_1, metric_2, metric_3, metric_4, metric_5 = (
         st.columns(5)
     )
 
@@ -2343,13 +1960,13 @@ if page == "Executive Overview":
         )
 
 
-        k1.metric(
+        metric_1.metric(
             "Stores Analysed",
             f"{historical['Store'].nunique():,}"
         )
 
 
-        k2.metric(
+        metric_2.metric(
             "Historical Sales",
             fmt_number(
                 historical_sales
@@ -2357,7 +1974,7 @@ if page == "Executive Overview":
         )
 
 
-        k3.metric(
+        metric_3.metric(
             "Sales / Customer",
             fmt_number(
                 historical_sales
@@ -2373,17 +1990,17 @@ if page == "Executive Overview":
 
     else:
 
-        k1.metric(
+        metric_1.metric(
             "Stores Analysed",
             "—"
         )
 
-        k2.metric(
+        metric_2.metric(
             "Historical Sales",
             "—"
         )
 
-        k3.metric(
+        metric_3.metric(
             "Sales / Customer",
             "—"
         )
@@ -2403,15 +2020,17 @@ if page == "Executive Overview":
         )
 
 
-        peak = daily.loc[
-            daily[
-                "PredictedSales"
+        peak = (
+            daily.loc[
+                daily[
+                    "PredictedSales"
+                ]
+                .idxmax()
             ]
-            .idxmax()
-        ]
+        )
 
 
-        k4.metric(
+        metric_4.metric(
             "Six-Week Forecast",
             fmt_number(
                 fc[
@@ -2422,7 +2041,7 @@ if page == "Executive Overview":
         )
 
 
-        k5.metric(
+        metric_5.metric(
             "Peak Demand Date",
             f"{peak['Date']:%d %b %Y}",
             f"{peak['PredictedSales']:,.0f} Sales"
@@ -2431,27 +2050,15 @@ if page == "Executive Overview":
 
     else:
 
-        k4.metric(
+        metric_4.metric(
             "Six-Week Forecast",
             "—"
         )
 
-        k5.metric(
+        metric_5.metric(
             "Peak Demand Date",
             "—"
         )
-
-
-    section(
-        "Executive demand view",
-
-        "Historical context and forward outlook",
-
-        (
-            "A clean view of how the network behaved historically "
-            "and what the approved forecast expects next."
-        )
-    )
 
 
     left, right = (
@@ -2460,6 +2067,11 @@ if page == "Executive Overview":
 
 
     with left:
+
+        st.subheader(
+            "Historical Network Demand"
+        )
+
 
         if (
             historical is not None
@@ -2480,111 +2092,42 @@ if page == "Executive Overview":
             )
 
 
-            figure = go.Figure(
-                go.Scatter(
-                    x=
-                        historical_daily[
-                            "Date"
-                        ],
-
-                    y=
-                        historical_daily[
-                            "Sales"
-                        ],
-
-                    mode=
-                        "lines",
-
-                    line=dict(
-                        color=
-                            BURGUNDY,
-
-                        width=
-                            2.2
-                    ),
-
-                    fill=
-                        "tozeroy",
-
-                    fillcolor=
-                        "rgba(74,38,48,.06)",
-
-                    name=
-                        "Historical Sales"
-                )
+            line_chart(
+                historical_daily,
+                "Date",
+                "Sales",
+                330
             )
 
 
-            figure.update_layout(
-                title=
-                    "Historical Network Demand"
-            )
+        else:
 
-
-            st.plotly_chart(
-                style_chart(
-                    figure,
-                    360,
-                    "x unified"
-                ),
-                use_container_width=True,
-                config={
-                    "displaylogo":
-                        False
-                }
+            st.info(
+                "Historical trend unavailable."
             )
 
 
     with right:
 
+        st.subheader(
+            "Forward Network Demand"
+        )
+
+
         if FORECAST_READY:
 
-            figure = go.Figure(
-                go.Scatter(
-                    x=
-                        daily[
-                            "Date"
-                        ],
-
-                    y=
-                        daily[
-                            "PredictedSales"
-                        ],
-
-                    mode=
-                        "lines",
-
-                    line=dict(
-                        color=
-                            COPPER,
-
-                        width=
-                            3
-                    ),
-
-                    name=
-                        "Forecast Sales"
-                )
+            line_chart(
+                daily,
+                "Date",
+                "PredictedSales",
+                330
             )
 
 
-            figure.update_layout(
-                title=
-                    "Forward Network Demand"
-            )
+        else:
 
-
-            st.plotly_chart(
-                style_chart(
-                    figure,
-                    360,
-                    "x unified"
-                ),
-                use_container_width=True,
-                config={
-                    "displaylogo":
-                        False
-                }
+            st.info(
+                "Forecast trend unavailable."
             )
 
 
@@ -2626,15 +2169,8 @@ if page == "Executive Overview":
         )
 
 
-        section(
-            "Management brief",
-
-            "What deserves attention",
-
-            (
-                "Key points generated from the currently detected "
-                "analytical outputs."
-            )
+        st.subheader(
+            "Executive Management Brief"
         )
 
 
@@ -2643,47 +2179,35 @@ if page == "Executive Overview":
         )
 
 
-        with brief_1:
+        brief_1.info(
+            f"**Demand timing**\n\n"
+            f"Peak network demand: "
+            f"**{peak['Date']:%d %B %Y}** · "
+            f"**{peak['PredictedSales']:,.0f} Sales**."
+        )
 
-            callout(
-                "Demand timing",
 
-                (
-                    f"Peak network demand is expected on "
-                    f"<b>{peak['Date']:%d %B %Y}</b> at "
-                    f"<b>{peak['PredictedSales']:,.0f}</b> Sales."
+        brief_2.info(
+            f"**Demand concentration**\n\n"
+            f"Top 10% of Stores contribute "
+            f"**{top_share(stores, .10):.1f}%** "
+            f"of forecast Sales."
+        )
+
+
+        brief_3.info(
+            "**Forecast precision**\n\n"
+            +
+            (
+                f"Median relative uncertainty: "
+                f"**{fmt_pct(uncertainty)}**."
+                if np.isfinite(
+                    uncertainty
                 )
+                else
+                "Prediction interval information is unavailable."
             )
-
-
-        with brief_2:
-
-            callout(
-                "Demand concentration",
-
-                (
-                    f"The highest-demand 10% of Stores contribute "
-                    f"<b>{top_share(stores,.10):.1f}%</b> "
-                    f"of forecast network Sales."
-                )
-            )
-
-
-        with brief_3:
-
-            callout(
-                "Forecast precision",
-
-                (
-                    f"Median relative forecast uncertainty is "
-                    f"<b>{fmt_pct(uncertainty)}</b>."
-                    if np.isfinite(
-                        uncertainty
-                    )
-                    else
-                    "Prediction interval information is not available."
-                )
-            )
+        )
 
 
 # =========================================================
@@ -2692,44 +2216,37 @@ if page == "Executive Overview":
 
 elif page == "Retail Intelligence":
 
-    hero(
+    page_intro(
         "Historical Retail Intelligence",
 
         (
-            "Explore the commercial conditions associated with Sales across "
-            "customers, calendar effects, promotions, Store formats, "
-            "assortment and competitive context."
+            "Interactive analysis of demand, customers, promotions, "
+            "holidays, Store structure and competition."
         ),
 
-        [
-            "Demand & Seasonality",
-            "Customer Behaviour",
-            "Promotion & Holidays",
-            "Store Structure"
-        ]
+        "Historical performance intelligence"
     )
 
 
     if not EDA_READY:
 
         st.error(
-            "Historical Rossmann data was not detected."
+            "Historical Rossmann data was not detected "
+            "in the deployed repository."
         )
 
         st.stop()
 
 
-    data = (
-        eda.copy()
-    )
+    data = eda.copy()
 
 
     with st.expander(
-        "Analysis controls",
+        "Analysis Controls",
         expanded=True
     ):
 
-        f1, f2, f3, f4 = (
+        filter_1, filter_2, filter_3, filter_4 = (
             st.columns(4)
         )
 
@@ -2764,7 +2281,7 @@ elif page == "Retail Intelligence":
 
 
             selected_dates = (
-                f1.date_input(
+                filter_1.date_input(
                     "Historical period",
 
                     value=(
@@ -2828,7 +2345,7 @@ elif page == "Retail Intelligence":
 
 
             selected = (
-                f2.multiselect(
+                filter_2.multiselect(
                     "Store Type",
                     options,
                     default=
@@ -2865,7 +2382,7 @@ elif page == "Retail Intelligence":
 
 
             selected = (
-                f3.multiselect(
+                filter_3.multiselect(
                     "Assortment",
                     options,
                     default=
@@ -2890,7 +2407,7 @@ elif page == "Retail Intelligence":
 
 
         open_only = (
-            f4.toggle(
+            filter_4.toggle(
                 "Open Store days only",
                 value=True
             )
@@ -2943,12 +2460,12 @@ elif page == "Retail Intelligence":
     )
 
 
-    k1, k2, k3, k4, k5 = (
+    metric_1, metric_2, metric_3, metric_4, metric_5 = (
         st.columns(5)
     )
 
 
-    k1.metric(
+    metric_1.metric(
         "Sales",
         fmt_number(
             total_sales
@@ -2956,7 +2473,7 @@ elif page == "Retail Intelligence":
     )
 
 
-    k2.metric(
+    metric_2.metric(
         "Average Sales",
         fmt_number(
             data[
@@ -2967,7 +2484,7 @@ elif page == "Retail Intelligence":
     )
 
 
-    k3.metric(
+    metric_3.metric(
         "Customers",
         fmt_number(
             total_customers
@@ -2975,7 +2492,7 @@ elif page == "Retail Intelligence":
     )
 
 
-    k4.metric(
+    metric_4.metric(
         "Average Customers",
         fmt_number(
             data[
@@ -2989,7 +2506,7 @@ elif page == "Retail Intelligence":
     )
 
 
-    k5.metric(
+    metric_5.metric(
         "Sales / Customer",
         fmt_number(
             total_sales
@@ -3006,7 +2523,7 @@ elif page == "Retail Intelligence":
     (
         demand_tab,
         customer_tab,
-        promo_tab,
+        promotion_tab,
         store_tab
     ) = st.tabs(
         [
@@ -3018,16 +2535,22 @@ elif page == "Retail Intelligence":
     )
 
 
+    # -----------------------------------------------------
+    # DEMAND & SEASONALITY
+    # -----------------------------------------------------
+
     with demand_tab:
 
         resolution = (
             st.selectbox(
                 "Trend resolution",
+
                 [
                     "Daily",
                     "Weekly",
                     "Monthly"
                 ],
+
                 index=1
             )
         )
@@ -3069,58 +2592,16 @@ elif page == "Retail Intelligence":
             )
 
 
-            figure = go.Figure(
-                go.Scatter(
-                    x=
-                        trend[
-                            "Date"
-                        ],
-
-                    y=
-                        trend[
-                            "Sales"
-                        ],
-
-                    mode=
-                        "lines",
-
-                    line=dict(
-                        color=
-                            BURGUNDY,
-
-                        width=
-                            2.5
-                    ),
-
-                    fill=
-                        "tozeroy",
-
-                    fillcolor=
-                        "rgba(74,38,48,.06)",
-
-                    name=
-                        "Sales"
-                )
+            st.subheader(
+                f"{resolution} Historical Sales Trend"
             )
 
 
-            figure.update_layout(
-                title=
-                    f"{resolution} Historical Sales Trend"
-            )
-
-
-            st.plotly_chart(
-                style_chart(
-                    figure,
-                    420,
-                    "x unified"
-                ),
-                use_container_width=True,
-                config={
-                    "displaylogo":
-                        False
-                }
+            line_chart(
+                trend,
+                "Date",
+                "Sales",
+                390
             )
 
 
@@ -3155,21 +2636,22 @@ elif page == "Retail Intelligence":
                     ),
 
                     (
-                        f"The strongest displayed period is "
+                        f"Strongest period: "
                         f"{highest['Date']:%d %b %Y} "
-                        f"({highest['Sales']:,.0f} Sales), while the weakest is "
+                        f"({highest['Sales']:,.0f}); "
+                        f"weakest: "
                         f"{lowest['Date']:%d %b %Y} "
                         f"({lowest['Sales']:,.0f})."
                     ),
 
                     (
-                        "Recurring demand peaks and troughs reveal "
-                        "seasonality and calendar structure."
+                        "Repeated peaks and troughs reveal "
+                        "calendar and seasonal structure."
                     ),
 
                     (
-                        "Use repeated high-demand periods for demand-readiness "
-                        "planning and investigate exceptional spikes separately."
+                        "Use recurring strong periods for demand-readiness "
+                        "planning and investigate unusual deviations separately."
                     )
                 )
 
@@ -3219,53 +2701,22 @@ elif page == "Retail Intelligence":
             )
 
 
-            figure = go.Figure(
-                go.Bar(
-                    x=
-                        weekday[
-                            "DayName"
-                        ],
-
-                    y=
-                        weekday[
-                            "Sales"
-                        ],
-
-                    marker_color=
-                        COPPER,
-
-                    text=
-                        weekday[
-                            "Sales"
-                        ],
-
-                    texttemplate=
-                        "%{text:,.0f}",
-
-                    textposition=
-                        "outside"
-                )
+            st.subheader(
+                "Average Sales by Weekday"
             )
 
 
-            figure.update_layout(
-                title=
-                    "Average Sales by Weekday"
+            bar_chart(
+                weekday,
+                "DayName",
+                "Sales",
+                350
             )
 
 
-            st.plotly_chart(
-                style_chart(
-                    figure,
-                    390
-                ),
-                use_container_width=True,
-                config={
-                    "displaylogo":
-                        False
-                }
-            )
-
+    # -----------------------------------------------------
+    # CUSTOMER BEHAVIOUR
+    # -----------------------------------------------------
 
     with customer_tab:
 
@@ -3280,11 +2731,10 @@ elif page == "Retail Intelligence":
 
             valid = (
                 data[
-                    (
-                        data[
-                            "Customers"
-                        ] > 0
-                    )
+                    data[
+                        "Customers"
+                    ]
+                    .gt(0)
                     &
                     data[
                         "Sales"
@@ -3310,18 +2760,18 @@ elif page == "Retail Intelligence":
             )
 
 
-            a, b, c = (
+            metric_1, metric_2, metric_3 = (
                 st.columns(3)
             )
 
 
-            a.metric(
+            metric_1.metric(
                 "Sales–Customer Correlation",
                 f"{correlation:.3f}"
             )
 
 
-            b.metric(
+            metric_2.metric(
                 "Average Customers",
                 fmt_number(
                     valid[
@@ -3332,7 +2782,7 @@ elif page == "Retail Intelligence":
             )
 
 
-            c.metric(
+            metric_3.metric(
                 "Sales / Customer",
                 fmt_number(
                     valid[
@@ -3353,7 +2803,7 @@ elif page == "Retail Intelligence":
             sample = (
                 valid.sample(
                     min(
-                        25000,
+                        15000,
                         len(
                             valid
                         )
@@ -3362,183 +2812,65 @@ elif page == "Retail Intelligence":
                 )
                 if len(
                     valid
-                ) > 25000
+                ) > 15000
                 else valid
             )
 
 
-            left, right = (
-                st.columns(
-                    [
-                        1.35,
-                        1
-                    ]
-                )
+            st.subheader(
+                "Sales vs Customer Traffic"
             )
 
 
-            with left:
+            st.scatter_chart(
+                sample,
 
-                figure = go.Figure(
-                    go.Scattergl(
-                        x=
-                            sample[
-                                "Customers"
-                            ],
+                x=
+                    "Customers",
 
-                        y=
-                            sample[
-                                "Sales"
-                            ],
+                y=
+                    "Sales",
 
-                        mode=
-                            "markers",
+                height=
+                    410,
 
-                        marker=dict(
-                            size=
-                                5,
-
-                            color=
-                                COPPER,
-
-                            opacity=
-                                .28
-                        ),
-
-                        hovertemplate=(
-                            "Customers: %{x:,.0f}"
-                            "<br>"
-                            "Sales: %{y:,.0f}"
-                            "<extra></extra>"
-                        )
-                    )
-                )
-
-
-                figure.update_layout(
-                    title=
-                        "Sales vs Customer Traffic",
-
-                    xaxis_title=
-                        "Customers",
-
-                    yaxis_title=
-                        "Sales"
-                )
-
-
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        430
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
-                )
-
-
-            with right:
-
-                if "SalesPerCustomer" in valid.columns:
-
-                    values = (
-                        valid[
-                            "SalesPerCustomer"
-                        ]
-                        .replace(
-                            [
-                                np.inf,
-                                -np.inf
-                            ],
-                            np.nan
-                        )
-                        .dropna()
-                    )
-
-
-                    if not values.empty:
-
-                        values = (
-                            values[
-                                values
-                                <=
-                                values.quantile(
-                                    .99
-                                )
-                            ]
-                        )
-
-
-                        figure = go.Figure(
-                            go.Histogram(
-                                x=
-                                    values,
-
-                                nbinsx=
-                                    38,
-
-                                marker_color=
-                                    BURGUNDY
-                            )
-                        )
-
-
-                        figure.update_layout(
-                            title=
-                                "Sales per Customer Distribution",
-
-                            xaxis_title=
-                                "Sales per Customer",
-
-                            yaxis_title=
-                                "Store-Days"
-                        )
-
-
-                        st.plotly_chart(
-                            style_chart(
-                                figure,
-                                430
-                            ),
-                            use_container_width=True,
-                            config={
-                                "displaylogo":
-                                    False
-                            }
-                        )
+                use_container_width=
+                    True
+            )
 
 
             explain(
                 (
-                    "Each point represents a Store-day, comparing customer "
-                    "traffic with realised Sales."
+                    "Each point represents a Store-day with "
+                    "customer traffic and realised Sales."
                 ),
 
                 (
-                    f"The current filtered data has a Sales–Customer "
-                    f"correlation of {correlation:.3f}."
+                    f"Current Sales–Customer correlation: "
+                    f"{correlation:.3f}."
                 ),
 
                 (
-                    "This helps distinguish traffic-driven Sales from "
-                    "changes in customer value."
+                    "This helps distinguish traffic-driven Sales "
+                    "from changes in value per customer."
                 ),
 
                 (
-                    "Use the association descriptively; correlation does not "
-                    "prove causation."
+                    "Use the relationship descriptively; "
+                    "correlation does not prove causation."
                 )
             )
 
 
-    with promo_tab:
+    # -----------------------------------------------------
+    # PROMOTION & HOLIDAYS
+    # -----------------------------------------------------
+
+    with promotion_tab:
 
         if "Promo" in data.columns:
 
-            promo = (
+            promotion = (
                 data
                 .groupby(
                     "Promo",
@@ -3550,18 +2882,6 @@ elif page == "Retail Intelligence":
                         "mean"
                     ),
 
-                    AverageCustomers=(
-                        "Customers",
-                        "mean"
-                    )
-                    if "Customers"
-                    in data.columns
-                    else
-                    (
-                        "Sales",
-                        "size"
-                    ),
-
                     Observations=(
                         "Sales",
                         "size"
@@ -3570,10 +2890,10 @@ elif page == "Retail Intelligence":
             )
 
 
-            promo[
+            promotion[
                 "Condition"
             ] = (
-                promo[
+                promotion[
                     "Promo"
                 ]
                 .map(
@@ -3588,79 +2908,38 @@ elif page == "Retail Intelligence":
             )
 
 
-            figure = go.Figure(
-                go.Bar(
-                    x=
-                        promo[
-                            "Condition"
-                        ],
-
-                    y=
-                        promo[
-                            "AverageSales"
-                        ],
-
-                    marker_color=
-                        [
-                            SAGE,
-                            BURGUNDY
-                        ][
-                            :
-                            len(
-                                promo
-                            )
-                        ],
-
-                    text=
-                        promo[
-                            "AverageSales"
-                        ],
-
-                    texttemplate=
-                        "%{text:,.0f}",
-
-                    textposition=
-                        "outside"
-                )
+            st.subheader(
+                "Average Sales by Promotion Status"
             )
 
 
-            figure.update_layout(
-                title=
-                    "Average Sales by Promotion Status"
+            bar_chart(
+                promotion,
+                "Condition",
+                "AverageSales",
+                350
             )
 
 
-            st.plotly_chart(
-                style_chart(
-                    figure,
-                    390
-                ),
-                use_container_width=True,
-                config={
-                    "displaylogo":
-                        False
-                }
-            )
-
-
-            non_promo = (
-                promo.loc[
-                    promo[
+            baseline = (
+                promotion.loc[
+                    promotion[
                         "Promo"
                     ]
                     .eq(0),
+
                     "AverageSales"
                 ]
             )
 
 
             promoted = (
-                promo.loc[
-                    promo[
+                promotion.loc[
+                    promotion[
                         "Promo"
                     ]
                     .eq(1),
+
                     "AverageSales"
                 ]
             )
@@ -3670,7 +2949,7 @@ elif page == "Retail Intelligence":
                 (
                     promoted.iloc[0]
                     /
-                    non_promo.iloc[0]
+                    baseline.iloc[0]
                     -
                     1
                 )
@@ -3678,28 +2957,23 @@ elif page == "Retail Intelligence":
                 100
                 if (
                     len(
-                        non_promo
+                        baseline
                     )
                     and
                     len(
                         promoted
                     )
                     and
-                    non_promo.iloc[0]
+                    baseline.iloc[0]
                 )
                 else np.nan
             )
 
 
-            callout(
-                "Promotion effectiveness",
-
-                (
-                    f"Promotion-labelled Store-days show an observed average "
-                    f"Sales difference of <b>{difference:+.1f}%</b> relative to "
-                    f"non-promotion Store-days. This is descriptive "
-                    f"effectiveness, not causal ROI."
-                )
+            st.info(
+                f"Observed promotion-labelled Sales difference: "
+                f"**{difference:+.1f}%**. "
+                f"This is descriptive effectiveness, not causal ROI."
             )
 
 
@@ -3728,40 +3002,16 @@ elif page == "Retail Intelligence":
                 )
 
 
-                figure = go.Figure(
-                    go.Bar(
-                        x=
-                            holiday[
-                                "HolidayType"
-                            ],
-
-                        y=
-                            holiday[
-                                "Sales"
-                            ],
-
-                        marker_color=
-                            COPPER
-                    )
+                st.subheader(
+                    "State Holiday Demand"
                 )
 
 
-                figure.update_layout(
-                    title=
-                        "State Holiday Demand Profile"
-                )
-
-
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        370
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
+                bar_chart(
+                    holiday,
+                    "HolidayType",
+                    "Sales",
+                    330
                 )
 
 
@@ -3799,50 +3049,22 @@ elif page == "Retail Intelligence":
                 )
 
 
-                figure = go.Figure(
-                    go.Bar(
-                        x=
-                            school[
-                                "Condition"
-                            ],
-
-                        y=
-                            school[
-                                "Sales"
-                            ],
-
-                        marker_color=
-                            [
-                                SAGE,
-                                ROSE
-                            ][
-                                :
-                                len(
-                                    school
-                                )
-                            ]
-                    )
+                st.subheader(
+                    "School Holiday Demand"
                 )
 
 
-                figure.update_layout(
-                    title=
-                        "School Holiday Sales Behaviour"
+                bar_chart(
+                    school,
+                    "Condition",
+                    "Sales",
+                    330
                 )
 
 
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        370
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
-                )
-
+    # -----------------------------------------------------
+    # STORE & COMPETITION
+    # -----------------------------------------------------
 
     with store_tab:
 
@@ -3872,47 +3094,19 @@ elif page == "Retail Intelligence":
                             "nunique"
                         )
                     )
-                    .sort_values(
-                        "AverageSales",
-                        ascending=False
-                    )
                 )
 
 
-                figure = go.Figure(
-                    go.Bar(
-                        x=
-                            store_type[
-                                "StoreType"
-                            ],
-
-                        y=
-                            store_type[
-                                "AverageSales"
-                            ],
-
-                        marker_color=
-                            BURGUNDY
-                    )
+                st.subheader(
+                    "Average Sales by Store Type"
                 )
 
 
-                figure.update_layout(
-                    title=
-                        "Average Sales by Store Type"
-                )
-
-
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        380
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
+                bar_chart(
+                    store_type,
+                    "StoreType",
+                    "AverageSales",
+                    340
                 )
 
 
@@ -3937,47 +3131,19 @@ elif page == "Retail Intelligence":
                             "nunique"
                         )
                     )
-                    .sort_values(
-                        "AverageSales",
-                        ascending=False
-                    )
                 )
 
 
-                figure = go.Figure(
-                    go.Bar(
-                        x=
-                            assortment[
-                                "Assortment"
-                            ],
-
-                        y=
-                            assortment[
-                                "AverageSales"
-                            ],
-
-                        marker_color=
-                            COPPER
-                    )
+                st.subheader(
+                    "Average Sales by Assortment"
                 )
 
 
-                figure.update_layout(
-                    title=
-                        "Average Sales by Assortment"
-                )
-
-
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        380
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
+                bar_chart(
+                    assortment,
+                    "Assortment",
+                    "AverageSales",
+                    340
                 )
 
 
@@ -4036,50 +3202,20 @@ elif page == "Retail Intelligence":
                 )
 
 
-                figure = go.Figure(
-                    go.Bar(
-                        x=
-                            competition_view[
-                                "CompetitionBand"
-                            ],
-
-                        y=
-                            competition_view[
-                                "Sales"
-                            ],
-
-                        marker_color=
-                            COPPER
-                    )
+                st.subheader(
+                    "Average Sales by Competitive Proximity"
                 )
 
 
-                figure.update_layout(
-                    title=
-                        "Average Sales by Competitive Proximity",
-
-                    xaxis_title=
-                        "Competition Distance Band",
-
-                    yaxis_title=
-                        "Average Sales"
+                bar_chart(
+                    competition_view,
+                    "CompetitionBand",
+                    "Sales",
+                    350
                 )
 
 
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        400
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
-                )
-
-
-                correlation = (
+                competition_correlation = (
                     competition[
                         [
                             "CompetitionDistance",
@@ -4094,15 +3230,11 @@ elif page == "Retail Intelligence":
                 )
 
 
-                callout(
-                    "Competition context",
-
-                    (
-                        f"The simple Sales–CompetitionDistance correlation is "
-                        f"<b>{correlation:.3f}</b>. Competitive proximity should be "
-                        f"used as one contextual signal, not as a stand-alone "
-                        f"explanation of Store performance."
-                    )
+                st.info(
+                    f"Sales–CompetitionDistance correlation: "
+                    f"**{competition_correlation:.3f}**. "
+                    f"Treat competition distance as a contextual signal, "
+                    f"not a stand-alone explanation."
                 )
 
 
@@ -4112,27 +3244,23 @@ elif page == "Retail Intelligence":
 
 elif page == "Forecast Intelligence":
 
-    hero(
+    page_intro(
         "Forecast & Risk Intelligence",
 
         (
-            "Explore the six-week network outlook, Store concentration, "
+            "Six-week network outlook, demand concentration, "
             "prediction uncertainty and management priorities."
         ),
 
-        [
-            "Network Outlook",
-            "Demand Concentration",
-            "Forecast Risk",
-            "Management Priorities"
-        ]
+        "Forward demand intelligence"
     )
 
 
     if not FORECAST_READY:
 
         st.error(
-            "The six-week forecast output was not detected."
+            "The approved forecast output was not detected "
+            "in the repository."
         )
 
         st.stop()
@@ -4160,12 +3288,12 @@ elif page == "Forecast Intelligence":
     )
 
 
-    k1, k2, k3, k4 = (
+    metric_1, metric_2, metric_3, metric_4 = (
         st.columns(4)
     )
 
 
-    k1.metric(
+    metric_1.metric(
         "Forecast Sales",
         fmt_number(
             fc[
@@ -4176,19 +3304,19 @@ elif page == "Forecast Intelligence":
     )
 
 
-    k2.metric(
+    metric_2.metric(
         "Stores Covered",
         f"{fc['Store'].nunique():,}"
     )
 
 
-    k3.metric(
+    metric_3.metric(
         "Forecast Horizon",
         f"{fc['Date'].nunique()} Days"
     )
 
 
-    k4.metric(
+    metric_4.metric(
         "Peak Demand Date",
         f"{peak['Date']:%d %b %Y}",
         f"{peak['PredictedSales']:,.0f} Sales"
@@ -4209,6 +3337,10 @@ elif page == "Forecast Intelligence":
         ]
     )
 
+
+    # -----------------------------------------------------
+    # NETWORK OUTLOOK
+    # -----------------------------------------------------
 
     with outlook_tab:
 
@@ -4243,116 +3375,25 @@ elif page == "Forecast Intelligence":
         )
 
 
-        figure = go.Figure()
-
-
-        if INTERVAL_READY:
-
-            figure.add_trace(
-                go.Scatter(
-                    x=
-                        network[
-                            "Date"
-                        ],
-
-                    y=
-                        network[
-                            "Upper90"
-                        ],
-
-                    mode=
-                        "lines",
-
-                    line=dict(
-                        width=0
-                    ),
-
-                    showlegend=
-                        False,
-
-                    hoverinfo=
-                        "skip"
-                )
-            )
-
-
-            figure.add_trace(
-                go.Scatter(
-                    x=
-                        network[
-                            "Date"
-                        ],
-
-                    y=
-                        network[
-                            "Lower90"
-                        ],
-
-                    mode=
-                        "lines",
-
-                    line=dict(
-                        width=0
-                    ),
-
-                    fill=
-                        "tonexty",
-
-                    fillcolor=
-                        "rgba(184,122,73,.18)",
-
-                    name=
-                        "90% Prediction Interval"
-                )
-            )
-
-
-        figure.add_trace(
-            go.Scatter(
-                x=
-                    network[
-                        "Date"
-                    ],
-
-                y=
-                    network[
-                        "PredictedSales"
-                    ],
-
-                mode=
-                    "lines",
-
-                line=dict(
-                    color=
-                        BURGUNDY,
-
-                    width=
-                        3
-                ),
-
-                name=
-                    "Forecast Sales"
-            )
+        st.subheader(
+            "Network-Level Six-Week Forecast"
         )
 
 
-        figure.update_layout(
-            title=
-                "Network-Level Six-Week Forecast"
-        )
-
-
-        st.plotly_chart(
-            style_chart(
-                figure,
-                455,
-                "x unified"
+        line_chart(
+            network,
+            "Date",
+            (
+                [
+                    "PredictedSales",
+                    "Lower90",
+                    "Upper90"
+                ]
+                if INTERVAL_READY
+                else
+                "PredictedSales"
             ),
-            use_container_width=True,
-            config={
-                "displaylogo":
-                    False
-            }
+            420
         )
 
 
@@ -4378,27 +3419,26 @@ elif page == "Forecast Intelligence":
 
         explain(
             (
-                "Total expected Sales across the Store network by future date. "
-                "The shaded band shows the aggregated 90% prediction interval "
-                "when available."
+                "Total predicted network Sales by future date. "
+                "Interval lines show forecast uncertainty when available."
             ),
 
             (
-                f"Average expected demand is "
-                f"{network['PredictedSales'].mean():,.0f} Sales per day. "
-                f"The highest date is {highest['Date']:%d %B %Y} "
-                f"({highest['PredictedSales']:,.0f}), while the lowest is "
-                f"{lowest['Date']:%d %B %Y} "
-                f"({lowest['PredictedSales']:,.0f})."
+                f"Average expected demand: "
+                f"{network['PredictedSales'].mean():,.0f} Sales/day. "
+                f"Highest: {highest['PredictedSales']:,.0f} on "
+                f"{highest['Date']:%d %b %Y}; "
+                f"lowest: {lowest['PredictedSales']:,.0f} on "
+                f"{lowest['Date']:%d %b %Y}."
             ),
 
             (
-                "This reveals when network demand pressure is likely to be "
-                "higher or lower."
+                "This identifies periods with comparatively "
+                "greater or lower operating demand."
             ),
 
             (
-                "Use peak dates for demand-readiness planning and wider "
+                "Use peak dates for readiness planning and wider "
                 "intervals as a signal to preserve flexibility."
             )
         )
@@ -4416,59 +3456,22 @@ elif page == "Forecast Intelligence":
         )
 
 
-        figure = go.Figure(
-            go.Bar(
-                x=
-                    weekly[
-                        "ForecastWeek"
-                    ],
-
-                y=
-                    weekly[
-                        "PredictedSales"
-                    ],
-
-                marker_color=
-                    COPPER,
-
-                text=
-                    weekly[
-                        "PredictedSales"
-                    ],
-
-                texttemplate=
-                    "%{text:,.0f}",
-
-                textposition=
-                    "outside"
-            )
+        st.subheader(
+            "Weekly Forecast Profile"
         )
 
 
-        figure.update_layout(
-            title=
-                "Weekly Forecast Profile",
-
-            xaxis_title=
-                "Forecast Week",
-
-            yaxis_title=
-                "Forecast Sales"
+        bar_chart(
+            weekly,
+            "ForecastWeek",
+            "PredictedSales",
+            330
         )
 
 
-        st.plotly_chart(
-            style_chart(
-                figure,
-                380
-            ),
-            use_container_width=True,
-            config={
-                "displaylogo":
-                    False
-            }
-        )
-
+    # -----------------------------------------------------
+    # DEMAND CONCENTRATION
+    # -----------------------------------------------------
 
     with concentration_tab:
 
@@ -4507,31 +3510,20 @@ elif page == "Forecast Intelligence":
         )
 
 
-        shares = {
-            "Top 1%":
-                top_share(
-                    store_forecast,
-                    .01
-                ),
+        shares = [
+            top_share(
+                store_forecast,
+                percentage
+            )
 
-            "Top 5%":
-                top_share(
-                    store_forecast,
-                    .05
-                ),
-
-            "Top 10%":
-                top_share(
-                    store_forecast,
-                    .10
-                ),
-
-            "Top 20%":
-                top_share(
-                    store_forecast,
-                    .20
-                )
-        }
+            for percentage
+            in [
+                .01,
+                .05,
+                .10,
+                .20
+            ]
+        ]
 
 
         columns = (
@@ -4539,12 +3531,15 @@ elif page == "Forecast Intelligence":
         )
 
 
-        for column, (
-            label,
-            value
-        ) in zip(
+        for column, label, value in zip(
             columns,
-            shares.items()
+            [
+                "Top 1%",
+                "Top 5%",
+                "Top 10%",
+                "Top 20%"
+            ],
+            shares
         ):
 
             column.metric(
@@ -4555,28 +3550,28 @@ elif page == "Forecast Intelligence":
             )
 
 
-        if len(
-            store_forecast
-        ) >= 5:
+        maximum = min(
+            40,
+            len(
+                store_forecast
+            )
+        )
 
-            displayed_stores = (
+
+        if maximum >= 5:
+
+            displayed = (
                 st.slider(
                     "Stores displayed",
 
                     min_value=5,
 
-                    max_value=min(
-                        50,
-                        len(
-                            store_forecast
-                        )
-                    ),
+                    max_value=
+                        maximum,
 
                     value=min(
                         15,
-                        len(
-                            store_forecast
-                        )
+                        maximum
                     )
                 )
             )
@@ -4584,104 +3579,84 @@ elif page == "Forecast Intelligence":
 
         else:
 
-            displayed_stores = len(
-                store_forecast
-            )
+            displayed = maximum
 
 
         visible = (
             store_forecast
             .head(
-                displayed_stores
+                displayed
+            )
+            .copy()
+        )
+
+
+        visible[
+            "StoreLabel"
+        ] = (
+            visible[
+                "Store"
+            ]
+            .apply(
+                lambda value:
+                    f"Store {int(value)}"
             )
         )
 
 
-        figure = go.Figure(
-            go.Bar(
-                x=
-                    visible[
-                        "PredictedSales"
-                    ],
+        st.subheader(
+            "Highest Forecast-Contribution Stores"
+        )
 
-                y=[
-                    f"Store {int(store)}"
-                    for store
-                    in visible[
-                        "Store"
-                    ]
-                ],
 
-                orientation=
-                    "h",
-
-                marker_color=
-                    BURGUNDY,
-
-                customdata=
-                    visible[
-                        "ContributionPct"
-                    ],
-
-                hovertemplate=(
-                    "%{y}"
-                    "<br>"
-                    "Forecast Sales: %{x:,.0f}"
-                    "<br>"
-                    "Contribution: %{customdata:.2f}%"
-                    "<extra></extra>"
-                )
+        bar_chart(
+            visible,
+            "StoreLabel",
+            "PredictedSales",
+            max(
+                340,
+                displayed
+                *
+                20
             )
         )
 
 
-        figure.update_yaxes(
-            autorange=
-                "reversed"
-        )
-
-
-        figure.update_layout(
-            title=
-                "Forecast Demand Concentration"
-        )
-
-
-        st.plotly_chart(
-            style_chart(
-                figure,
-                max(
-                    400,
-                    displayed_stores
-                    *
-                    27
-                )
+        explain(
+            (
+                "Stores ranked by total forecast Sales "
+                "over the full horizon."
             ),
-            use_container_width=True,
-            config={
-                "displaylogo":
-                    False
-            }
-        )
-
-
-        callout(
-            "Portfolio concentration",
 
             (
-                f"The top 10% of Stores contribute "
-                f"<b>{shares['Top 10%']:.1f}%</b> of forecast network Sales. "
-                f"This represents demand concentration, not profitability."
+                f"Top 10% of Stores contribute "
+                f"{shares[2]:.1f}% "
+                f"of network forecast Sales."
+            ),
+
+            (
+                "Higher concentration means a smaller group of Stores "
+                "carries a larger share of future demand."
+            ),
+
+            (
+                "Prioritise demand readiness at high-contribution Stores "
+                "without interpreting contribution as profitability."
             )
         )
 
+
+    # -----------------------------------------------------
+    # FORECAST RISK
+    # -----------------------------------------------------
 
     with risk_tab:
 
         if not INTERVAL_READY:
 
             st.info(
-                "Prediction intervals are not available."
+                "Prediction intervals are not available "
+                "in the detected forecast file."
             )
 
 
@@ -4799,117 +3774,31 @@ elif page == "Forecast Intelligence":
             )
 
 
-            colors = {
-                "Demand-Critical":
-                    DANGER,
-
-                "High Demand":
-                    BURGUNDY,
-
-                "Elevated Uncertainty":
-                    COPPER,
-
-                "Standard":
-                    "#A69D98"
-            }
-
-
-            figure = go.Figure()
-
-
-            for category, color in colors.items():
-
-                subset = (
-                    risk[
-                        risk[
-                            "Priority"
-                        ]
-                        .eq(
-                            category
-                        )
-                    ]
-                )
-
-
-                figure.add_trace(
-                    go.Scatter(
-                        x=
-                            subset[
-                                "ForecastSales"
-                            ],
-
-                        y=
-                            subset[
-                                "RelativeUncertainty"
-                            ],
-
-                        mode=
-                            "markers",
-
-                        name=
-                            category,
-
-                        marker=dict(
-                            size=
-                                9,
-
-                            color=
-                                color,
-
-                            opacity=
-                                .78,
-
-                            line=dict(
-                                width=
-                                    .5,
-
-                                color=
-                                    "#FFFFFF"
-                            )
-                        ),
-
-                        text=[
-                            f"Store {int(store)}"
-                            for store
-                            in subset[
-                                "Store"
-                            ]
-                        ],
-
-                        hovertemplate=(
-                            "<b>%{text}</b>"
-                            "<br>"
-                            "Forecast Sales: %{x:,.0f}"
-                            "<br>"
-                            "Relative Uncertainty: %{y:.1f}%"
-                            "<extra></extra>"
-                        )
-                    )
-                )
-
-
-            figure.update_layout(
-                title=
-                    "Demand Exposure vs Forecast Uncertainty",
-
-                xaxis_title=
-                    "Forecast Sales",
-
-                yaxis_title=
-                    "Relative Uncertainty %"
+            st.subheader(
+                "Demand Exposure vs Forecast Uncertainty"
             )
 
 
-            st.plotly_chart(
-                style_chart(
-                    figure,
-                    465
-                ),
-                use_container_width=True,
-                config={
-                    "displaylogo":
-                        False
-                }
+            st.scatter_chart(
+                risk,
+
+                x=
+                    "ForecastSales",
+
+                y=
+                    "RelativeUncertainty",
+
+                color=
+                    "Priority",
+
+                size=
+                    "ForecastSales",
+
+                height=
+                    420,
+
+                use_container_width=
+                    True
             )
 
 
@@ -4924,32 +3813,43 @@ elif page == "Forecast Intelligence":
             )
 
 
-            callout(
-                "Risk interpretation",
+            highest_uncertainty = (
+                risk.sort_values(
+                    "RelativeUncertainty",
+                    ascending=False
+                )
+                .iloc[0]
+            )
+
+
+            explain(
+                (
+                    "Each point is a Store; demand is on the horizontal "
+                    "axis and relative uncertainty on the vertical axis."
+                ),
 
                 (
-                    f"<b>{critical}</b> Stores are currently classified as "
-                    f"Demand-Critical because they combine high expected demand "
-                    f"with comparatively high forecast uncertainty."
+                    f"{critical} Stores are Demand-Critical. "
+                    f"Store {int(highest_uncertainty['Store'])} has "
+                    f"the highest relative uncertainty at "
+                    f"{highest_uncertainty['RelativeUncertainty']:.1f}%."
+                ),
+
+                (
+                    "High-demand/high-uncertainty Stores combine "
+                    "larger commercial exposure with lower forecast precision."
+                ),
+
+                (
+                    "Review Demand-Critical Stores first and retain "
+                    "more flexibility around their central forecast."
                 )
             )
 
 
-            st.dataframe(
-                risk.sort_values(
-                    [
-                        "Priority",
-                        "ForecastSales"
-                    ],
-                    ascending=[
-                        True,
-                        False
-                    ]
-                ),
-                use_container_width=True,
-                hide_index=True
-            )
-
+    # -----------------------------------------------------
+    # MANAGEMENT PRIORITIES
+    # -----------------------------------------------------
 
     with priority_tab:
 
@@ -5016,111 +3916,6 @@ elif page == "Forecast Intelligence":
 
             priority[
                 "RelativeUncertainty"
-            ] = np.nan
-
-
-        if (
-            EDA_READY
-            and
-            "Date"
-            in eda.columns
-        ):
-
-            history = (
-                eda.copy()
-            )
-
-
-            if "Open" in history.columns:
-
-                history = (
-                    history[
-                        history[
-                            "Open"
-                        ]
-                        .fillna(0)
-                        .eq(1)
-                    ]
-                )
-
-
-            latest = (
-                history[
-                    "Date"
-                ]
-                .max()
-            )
-
-
-            recent = (
-                history[
-                    history[
-                        "Date"
-                    ]
-                    .between(
-                        latest
-                        -
-                        pd.Timedelta(
-                            days=41
-                        ),
-
-                        latest
-                    )
-                ]
-            )
-
-
-            recent_store = (
-                recent
-                .groupby(
-                    "Store",
-                    as_index=False
-                )[
-                    "Sales"
-                ]
-                .mean()
-                .rename(
-                    columns={
-                        "Sales":
-                            "RecentDailyAvg"
-                    }
-                )
-            )
-
-
-            priority = (
-                priority.merge(
-                    recent_store,
-                    on="Store",
-                    how="left"
-                )
-            )
-
-
-            priority[
-                "ForwardVsRecentPct"
-            ] = (
-                priority[
-                    "ForecastDailyAvg"
-                ]
-                /
-                priority[
-                    "RecentDailyAvg"
-                ]
-                -
-                1
-            ) * 100
-
-
-        else:
-
-            priority[
-                "RecentDailyAvg"
-            ] = np.nan
-
-
-            priority[
-                "ForwardVsRecentPct"
             ] = np.nan
 
 
@@ -5204,59 +3999,6 @@ elif page == "Forecast Intelligence":
             ] = "Demand-Critical"
 
 
-        if priority[
-            "ForwardVsRecentPct"
-        ].notna().any():
-
-            priority.loc[
-                priority[
-                    "ForwardVsRecentPct"
-                ]
-                .ge(
-                    20
-                ),
-
-                "ManagementPriority"
-            ] = "Forward Upside Review"
-
-
-            priority.loc[
-                priority[
-                    "ForwardVsRecentPct"
-                ]
-                .le(
-                    -20
-                ),
-
-                "ManagementPriority"
-            ] = "Forward Downside Review"
-
-
-            if np.isfinite(
-                uncertainty_threshold
-            ):
-
-                priority.loc[
-                    (
-                        priority[
-                            "ForecastSales"
-                        ]
-                        .ge(
-                            demand_threshold
-                        )
-                        &
-                        priority[
-                            "RelativeUncertainty"
-                        ]
-                        .ge(
-                            uncertainty_threshold
-                        )
-                    ),
-
-                    "ManagementPriority"
-                ] = "Demand-Critical"
-
-
         counts = (
             priority[
                 "ManagementPriority"
@@ -5265,12 +4007,12 @@ elif page == "Forecast Intelligence":
         )
 
 
-        a, b, c, d = (
-            st.columns(4)
+        metric_1, metric_2, metric_3 = (
+            st.columns(3)
         )
 
 
-        a.metric(
+        metric_1.metric(
             "Demand-Critical",
             int(
                 counts.get(
@@ -5281,7 +4023,7 @@ elif page == "Forecast Intelligence":
         )
 
 
-        b.metric(
+        metric_2.metric(
             "High Demand",
             int(
                 counts.get(
@@ -5292,27 +4034,11 @@ elif page == "Forecast Intelligence":
         )
 
 
-        c.metric(
+        metric_3.metric(
             "Elevated Uncertainty",
             int(
                 counts.get(
                     "Elevated Uncertainty",
-                    0
-                )
-            )
-        )
-
-
-        d.metric(
-            "Forward Exceptions",
-            int(
-                counts.get(
-                    "Forward Upside Review",
-                    0
-                )
-                +
-                counts.get(
-                    "Forward Downside Review",
                     0
                 )
             )
@@ -5396,20 +4122,16 @@ elif page == "Forecast Intelligence":
 
 elif page == "Store Portfolio":
 
-    hero(
+    page_intro(
         "Store Portfolio Intelligence",
 
         (
-            "Review one Store across historical performance, structural "
-            "attributes, future demand, ranking and forecast uncertainty."
+            "Review one Store across historical performance, "
+            "structural attributes, forecast trajectory, "
+            "ranking and uncertainty."
         ),
 
-        [
-            "Store Scorecard",
-            "Historical Profile",
-            "Forward Outlook",
-            "Network Ranking"
-        ]
+        "Store-level decision support"
     )
 
 
@@ -5607,7 +4329,7 @@ elif page == "Store Portfolio":
             )
 
 
-    metrics_row = (
+    metric_columns = (
         st.columns(6)
     )
 
@@ -5632,7 +4354,7 @@ elif page == "Store Portfolio":
         )
 
 
-        metrics_row[
+        metric_columns[
             0
         ].metric(
             "Historical Sales",
@@ -5645,7 +4367,7 @@ elif page == "Store Portfolio":
         )
 
 
-        metrics_row[
+        metric_columns[
             1
         ].metric(
             "Average Sales",
@@ -5658,7 +4380,7 @@ elif page == "Store Portfolio":
         )
 
 
-        metrics_row[
+        metric_columns[
             2
         ].metric(
             "Historical Rank",
@@ -5674,21 +4396,21 @@ elif page == "Store Portfolio":
 
     else:
 
-        metrics_row[
+        metric_columns[
             0
         ].metric(
             "Historical Sales",
             "—"
         )
 
-        metrics_row[
+        metric_columns[
             1
         ].metric(
             "Average Sales",
             "—"
         )
 
-        metrics_row[
+        metric_columns[
             2
         ].metric(
             "Historical Rank",
@@ -5712,7 +4434,7 @@ elif page == "Store Portfolio":
         )
 
 
-        metrics_row[
+        metric_columns[
             3
         ].metric(
             "Forecast Sales",
@@ -5725,7 +4447,7 @@ elif page == "Store Portfolio":
         )
 
 
-        metrics_row[
+        metric_columns[
             4
         ].metric(
             "Forecast Rank",
@@ -5739,7 +4461,7 @@ elif page == "Store Portfolio":
         )
 
 
-        metrics_row[
+        metric_columns[
             5
         ].metric(
             "Forecast Peak",
@@ -5750,21 +4472,21 @@ elif page == "Store Portfolio":
 
     else:
 
-        metrics_row[
+        metric_columns[
             3
         ].metric(
             "Forecast Sales",
             "—"
         )
 
-        metrics_row[
+        metric_columns[
             4
         ].metric(
             "Forecast Rank",
             "—"
         )
 
-        metrics_row[
+        metric_columns[
             5
         ].metric(
             "Forecast Peak",
@@ -5800,64 +4522,29 @@ elif page == "Store Portfolio":
 
         else:
 
-            if "Date" in historical_store.columns:
-
-                trend = (
-                    historical_store
-                    .groupby(
-                        "Date",
-                        as_index=False
-                    )[
-                        "Sales"
-                    ]
-                    .sum()
-                )
+            trend = (
+                historical_store
+                .groupby(
+                    "Date",
+                    as_index=False
+                )[
+                    "Sales"
+                ]
+                .sum()
+            )
 
 
-                figure = go.Figure(
-                    go.Scatter(
-                        x=
-                            trend[
-                                "Date"
-                            ],
-
-                        y=
-                            trend[
-                                "Sales"
-                            ],
-
-                        mode=
-                            "lines",
-
-                        line=dict(
-                            color=
-                                BURGUNDY,
-
-                            width=
-                                2.25
-                        )
-                    )
-                )
+            st.subheader(
+                f"Store {selected_store} Historical Sales"
+            )
 
 
-                figure.update_layout(
-                    title=
-                        f"Store {selected_store} Historical Sales"
-                )
-
-
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        410,
-                        "x unified"
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
-                )
+            line_chart(
+                trend,
+                "Date",
+                "Sales",
+                380
+            )
 
 
     with forward_tab:
@@ -5875,7 +4562,9 @@ elif page == "Store Portfolio":
 
         else:
 
-            figure = go.Figure()
+            columns = [
+                "PredictedSales"
+            ]
 
 
             if {
@@ -5885,119 +4574,24 @@ elif page == "Store Portfolio":
                 future_store.columns
             ):
 
-                figure.add_trace(
-                    go.Scatter(
-                        x=
-                            future_store[
-                                "Date"
-                            ],
-
-                        y=
-                            future_store[
-                                "Upper90"
-                            ],
-
-                        mode=
-                            "lines",
-
-                        line=dict(
-                            width=0
-                        ),
-
-                        showlegend=
-                            False,
-
-                        hoverinfo=
-                            "skip"
-                    )
+                columns.extend(
+                    [
+                        "Lower90",
+                        "Upper90"
+                    ]
                 )
 
 
-                figure.add_trace(
-                    go.Scatter(
-                        x=
-                            future_store[
-                                "Date"
-                            ],
-
-                        y=
-                            future_store[
-                                "Lower90"
-                            ],
-
-                        mode=
-                            "lines",
-
-                        line=dict(
-                            width=0
-                        ),
-
-                        fill=
-                            "tonexty",
-
-                        fillcolor=
-                            "rgba(184,122,73,.18)",
-
-                        name=
-                            "90% Prediction Interval"
-                    )
-                )
-
-
-            figure.add_trace(
-                go.Scatter(
-                    x=
-                        future_store[
-                            "Date"
-                        ],
-
-                    y=
-                        future_store[
-                            "PredictedSales"
-                        ],
-
-                    mode=
-                        "lines+markers",
-
-                    line=dict(
-                        color=
-                            BURGUNDY,
-
-                        width=
-                            3
-                    ),
-
-                    marker=dict(
-                        color=
-                            COPPER,
-
-                        size=
-                            6
-                    ),
-
-                    name=
-                        "Predicted Sales"
-                )
+            st.subheader(
+                f"Store {selected_store} Six-Week Outlook"
             )
 
 
-            figure.update_layout(
-                title=
-                    f"Store {selected_store} Six-Week Outlook"
-            )
-
-
-            st.plotly_chart(
-                style_chart(
-                    figure,
-                    435,
-                    "x unified"
-                ),
-                use_container_width=True,
-                config={
-                    "displaylogo":
-                        False
-                }
+            line_chart(
+                future_store,
+                "Date",
+                columns,
+                390
             )
 
 
@@ -6021,17 +4615,30 @@ elif page == "Store Portfolio":
             )
 
 
-            callout(
-                "Store outlook",
+            explain(
+                (
+                    f"Daily Sales forecast for Store "
+                    f"{selected_store}."
+                ),
 
                 (
-                    f"Store {selected_store} has a six-week forecast of "
-                    f"<b>{future_store['PredictedSales'].sum():,.0f}</b> Sales. "
-                    f"Peak expected daily demand is "
-                    f"<b>{peak_store['PredictedSales']:,.0f}</b> on "
-                    f"<b>{peak_store['Date']:%d %B %Y}</b>. "
-                    f"Median relative uncertainty is "
-                    f"<b>{fmt_pct(uncertainty)}</b>."
+                    f"Total expected Sales: "
+                    f"{future_store['PredictedSales'].sum():,.0f}; "
+                    f"peak: {peak_store['PredictedSales']:,.0f} on "
+                    f"{peak_store['Date']:%d %B %Y}; "
+                    f"median relative uncertainty: "
+                    f"{fmt_pct(uncertainty)}."
+                ),
+
+                (
+                    "Store-level demand and forecast precision "
+                    "can differ materially from network averages."
+                ),
+
+                (
+                    "Use the central forecast as the baseline "
+                    "and interval width to judge how much "
+                    "flexibility is appropriate."
                 )
             )
 
@@ -6066,7 +4673,7 @@ elif page == "Store Portfolio":
             not historical_store.empty
         ):
 
-            profile_columns = [
+            columns = [
                 column
                 for column
                 in [
@@ -6081,11 +4688,11 @@ elif page == "Store Portfolio":
             ]
 
 
-            if profile_columns:
+            if columns:
 
                 profile = (
                     historical_store[
-                        profile_columns
+                        columns
                     ]
                     .drop_duplicates()
                     .head(1)
@@ -6107,40 +4714,38 @@ elif page == "Store Portfolio":
                 )
 
 
-        score = pd.DataFrame(
-            [
-                [
-                    "Historical Rank",
-                    (
-                        f"#{historical_rank}"
-                        if np.isfinite(
-                            historical_rank
-                        )
-                        else "—"
-                    )
-                ],
+        scorecard = pd.DataFrame(
+            {
+                "Indicator":
+                    [
+                        "Historical Network Rank",
+                        "Forecast Network Rank"
+                    ],
 
-                [
-                    "Forecast Rank",
-                    (
-                        f"#{forecast_rank}"
-                        if np.isfinite(
-                            forecast_rank
-                        )
-                        else "—"
-                    )
-                ]
-            ],
+                "Value":
+                    [
+                        (
+                            f"#{historical_rank}"
+                            if np.isfinite(
+                                historical_rank
+                            )
+                            else "—"
+                        ),
 
-            columns=[
-                "Indicator",
-                "Value"
-            ]
+                        (
+                            f"#{forecast_rank}"
+                            if np.isfinite(
+                                forecast_rank
+                            )
+                            else "—"
+                        )
+                    ]
+            }
         )
 
 
         st.dataframe(
-            score,
+            scorecard,
             use_container_width=True,
             hide_index=True
         )
@@ -6152,29 +4757,24 @@ elif page == "Store Portfolio":
 
 elif page == "Model Governance":
 
-    hero(
+    page_intro(
         "Model Governance",
 
         (
-            "Inspect validation quality, production configuration, "
-            "feature contracts and explainability evidence."
+            "Validation performance, production configuration, "
+            "feature contract and model evidence."
         ),
 
-        [
-            "Validation",
-            "Feature Contract",
-            "Explainability",
-            "Methodology"
-        ]
+        "Forecast reliability and governance"
     )
 
 
-    a, b, c, d, e = (
+    metric_1, metric_2, metric_3, metric_4, metric_5 = (
         st.columns(5)
     )
 
 
-    a.metric(
+    metric_1.metric(
         "Model",
         metadata.get(
             "model_type",
@@ -6183,19 +4783,19 @@ elif page == "Model Governance":
     )
 
 
-    b.metric(
+    metric_2.metric(
         "Lookback",
-        f"{metadata.get('lookback_days',42)} Days"
+        f"{metadata.get('lookback_days', 42)} Days"
     )
 
 
-    c.metric(
+    metric_3.metric(
         "Forecast Horizon",
-        f"{metadata.get('forecast_horizon_days',42)} Days"
+        f"{metadata.get('forecast_horizon_days', 42)} Days"
     )
 
 
-    d.metric(
+    metric_4.metric(
         "Feature Count",
         metadata.get(
             "feature_count",
@@ -6207,7 +4807,7 @@ elif page == "Model Governance":
     )
 
 
-    e.metric(
+    metric_5.metric(
         "Training Loss",
         metadata.get(
             "loss",
@@ -6233,61 +4833,85 @@ elif page == "Model Governance":
 
     with validation_tab:
 
-        k1, k2, k3, k4, k5 = (
+        columns = (
             st.columns(5)
         )
 
 
-        k1.metric(
+        labels = [
             "MAE",
+            "RMSE",
+            "WAPE",
+            "R²",
+            "Bias"
+        ]
+
+
+        values = [
             fmt_number(
                 MAE
-            )
-        )
+            ),
 
-
-        k2.metric(
-            "RMSE",
             fmt_number(
                 RMSE
-            )
-        )
+            ),
 
-
-        k3.metric(
-            "WAPE",
             fmt_pct(
                 WAPE
-            )
-        )
+            ),
 
-
-        k4.metric(
-            "R²",
             (
                 f"{R2:.4f}"
                 if np.isfinite(
                     R2
                 )
                 else "—"
-            )
-        )
+            ),
 
-
-        k5.metric(
-            "Bias",
             fmt_pct(
                 BIAS
             )
-        )
+        ]
+
+
+        for column, label, value in zip(
+            columns,
+            labels,
+            values
+        ):
+
+            column.metric(
+                label,
+                value
+            )
+
+
+        with st.expander(
+            "How to read these metrics"
+        ):
+
+            st.markdown(
+                """
+                **MAE** — average absolute forecast error. Lower is better.
+
+                **RMSE** — penalises larger misses more strongly. Lower is better.
+
+                **WAPE** — total absolute error relative to actual Sales. Lower is better.
+
+                **R²** — how much observed Sales variation is captured. Higher is generally better.
+
+                **Bias** — aggregate directional error. Values closer to zero are preferable.
+                """
+            )
 
 
         if validation is not None:
 
-            actual_col = next(
+            actual_column = next(
                 (
                     column
-                    for column in [
+                    for column
+                    in [
                         "ActualSales",
                         "Actual",
                         "Sales"
@@ -6299,10 +4923,11 @@ elif page == "Model Governance":
             )
 
 
-            predicted_col = next(
+            predicted_column = next(
                 (
                     column
-                    for column in [
+                    for column
+                    in [
                         "PredictedSales",
                         "Prediction",
                         "Predicted"
@@ -6315,9 +4940,9 @@ elif page == "Model Governance":
 
 
             if (
-                actual_col
+                actual_column
                 and
-                predicted_col
+                predicted_column
                 and
                 "Date"
                 in validation.columns
@@ -6346,109 +4971,31 @@ elif page == "Model Governance":
                     )
                     .agg(
                         Actual=(
-                            actual_col,
+                            actual_column,
                             "sum"
                         ),
 
                         Predicted=(
-                            predicted_col,
+                            predicted_column,
                             "sum"
                         )
                     )
                 )
 
 
-                figure = go.Figure()
-
-
-                figure.add_trace(
-                    go.Scatter(
-                        x=
-                            comparison[
-                                "Date"
-                            ],
-
-                        y=
-                            comparison[
-                                "Actual"
-                            ],
-
-                        mode=
-                            "lines",
-
-                        name=
-                            "Actual Sales",
-
-                        line=dict(
-                            color=
-                                BURGUNDY_DARK,
-
-                            width=
-                                2.7
-                        )
-                    )
+                st.subheader(
+                    "Validation: Actual vs Predicted"
                 )
 
 
-                figure.add_trace(
-                    go.Scatter(
-                        x=
-                            comparison[
-                                "Date"
-                            ],
-
-                        y=
-                            comparison[
-                                "Predicted"
-                            ],
-
-                        mode=
-                            "lines",
-
-                        name=
-                            "Predicted Sales",
-
-                        line=dict(
-                            color=
-                                COPPER,
-
-                            width=
-                                2.7
-                        )
-                    )
-                )
-
-
-                figure.update_layout(
-                    title=
-                        "Validation Actual vs Predicted Sales"
-                )
-
-
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        425,
-                        "x unified"
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
-                )
-
-
-                callout(
-                    "Validation reading",
-
-                    (
-                        f"MAE <b>{fmt_number(MAE)}</b> · "
-                        f"RMSE <b>{fmt_number(RMSE)}</b> · "
-                        f"WAPE <b>{fmt_pct(WAPE)}</b> · "
-                        f"R² <b>{f'{R2:.4f}' if np.isfinite(R2) else '—'}</b> · "
-                        f"Bias <b>{fmt_pct(BIAS)}</b>."
-                    )
+                line_chart(
+                    comparison,
+                    "Date",
+                    [
+                        "Actual",
+                        "Predicted"
+                    ],
+                    390
                 )
 
 
@@ -6482,7 +5029,9 @@ elif page == "Model Governance":
                             features
                     }
                 ),
+
                 use_container_width=True,
+
                 hide_index=True
             )
 
@@ -6490,7 +5039,7 @@ elif page == "Model Governance":
         else:
 
             st.info(
-                "The serialized feature contract was not detected."
+                "Serialized feature contract was not detected."
             )
 
 
@@ -6501,88 +5050,6 @@ elif page == "Model Governance":
             and
             not feature_importance.empty
         ):
-
-            numeric_columns = (
-                feature_importance
-                .select_dtypes(
-                    include=
-                        np.number
-                )
-                .columns
-                .tolist()
-            )
-
-
-            text_columns = [
-                column
-                for column
-                in feature_importance.columns
-                if column
-                not in numeric_columns
-            ]
-
-
-            if (
-                numeric_columns
-                and
-                text_columns
-            ):
-
-                visible = (
-                    feature_importance
-                    .sort_values(
-                        numeric_columns[0],
-                        ascending=False
-                    )
-                    .head(20)
-                )
-
-
-                figure = go.Figure(
-                    go.Bar(
-                        x=
-                            visible[
-                                numeric_columns[0]
-                            ],
-
-                        y=
-                            visible[
-                                text_columns[0]
-                            ],
-
-                        orientation=
-                            "h",
-
-                        marker_color=
-                            COPPER
-                    )
-                )
-
-
-                figure.update_yaxes(
-                    autorange=
-                        "reversed"
-                )
-
-
-                figure.update_layout(
-                    title=
-                        "Leading Forecast Features"
-                )
-
-
-                st.plotly_chart(
-                    style_chart(
-                        figure,
-                        500
-                    ),
-                    use_container_width=True,
-                    config={
-                        "displaylogo":
-                            False
-                    }
-                )
-
 
             st.dataframe(
                 feature_importance,
@@ -6604,9 +5071,8 @@ elif page == "Model Governance":
             not group_importance.empty
         ):
 
-            section(
-                "Feature families",
-                "Grouped feature intelligence"
+            st.subheader(
+                "Feature Family Intelligence"
             )
 
 
@@ -6632,11 +5098,9 @@ elif page == "Model Governance":
                         )
                     ),
 
-                    height=
-                        330,
+                    height=300,
 
-                    disabled=
-                        True
+                    disabled=True
                 )
 
 
@@ -6649,14 +5113,10 @@ elif page == "Model Governance":
 
         else:
 
-            callout(
-                "Production method",
-
-                (
-                    "The production workflow uses a two-layer LSTM, "
-                    "a 42-day historical lookback, chronological validation, "
-                    "Store-safe sequences and recursive six-week forecasting."
-                )
+            st.info(
+                "The production workflow uses a two-layer LSTM, "
+                "42-day lookback, chronological validation, "
+                "Store-safe sequences and recursive six-week forecasting."
             )
 
 
@@ -6666,20 +5126,15 @@ elif page == "Model Governance":
 
 elif page == "Forecast Service":
 
-    hero(
+    page_intro(
         "Forecast Service",
 
         (
-            "Retrieve approved Store/date forecasts interactively or "
-            "submit a batch request for multiple Store/date combinations."
+            "Retrieve approved Store/date forecasts interactively "
+            "or through a batch request."
         ),
 
-        [
-            "Interactive Lookup",
-            "Batch Retrieval",
-            "CSV Export",
-            "Approved Horizon"
-        ]
+        "Prediction serving"
     )
 
 
@@ -6781,12 +5236,14 @@ elif page == "Forecast Service":
             )
 
 
-            m1, m2, m3, m4, m5 = (
+            columns = (
                 st.columns(5)
             )
 
 
-            m1.metric(
+            columns[
+                0
+            ].metric(
                 "Predicted Sales",
                 fmt_number(
                     record[
@@ -6796,7 +5253,9 @@ elif page == "Forecast Service":
             )
 
 
-            m2.metric(
+            columns[
+                1
+            ].metric(
                 "Lower 90%",
                 (
                     fmt_number(
@@ -6811,7 +5270,9 @@ elif page == "Forecast Service":
             )
 
 
-            m3.metric(
+            columns[
+                2
+            ].metric(
                 "Upper 90%",
                 (
                     fmt_number(
@@ -6826,7 +5287,9 @@ elif page == "Forecast Service":
             )
 
 
-            m4.metric(
+            columns[
+                3
+            ].metric(
                 "Open",
                 (
                     str(
@@ -6851,7 +5314,9 @@ elif page == "Forecast Service":
             )
 
 
-            m5.metric(
+            columns[
+                4
+            ].metric(
                 "Promotion",
                 (
                     str(
@@ -6876,16 +5341,10 @@ elif page == "Forecast Service":
             )
 
 
-            callout(
-                "Forecast interpretation",
-
-                (
-                    f"Store <b>{selected_store}</b> has a central forecast "
-                    f"of <b>{record['PredictedSales']:,.0f}</b> Sales on "
-                    f"<b>{pd.Timestamp(selected_date):%d %B %Y}</b>. "
-                    f"The point forecast is the planning baseline; "
-                    f"interval bounds communicate uncertainty."
-                )
+            st.info(
+                f"Store **{selected_store}** has a central forecast "
+                f"of **{record['PredictedSales']:,.0f} Sales** on "
+                f"**{pd.Timestamp(selected_date):%d %B %Y}**."
             )
 
 
@@ -6938,6 +5397,7 @@ elif page == "Forecast Service":
         uploaded = (
             st.file_uploader(
                 "Upload Store/Date request CSV",
+
                 type=[
                     "csv"
                 ]
@@ -7051,12 +5511,12 @@ elif page == "Forecast Service":
                     )
 
 
-                    a, b, c = (
+                    metric_1, metric_2, metric_3 = (
                         st.columns(3)
                     )
 
 
-                    a.metric(
+                    metric_1.metric(
                         "Requests",
                         len(
                             result
@@ -7064,13 +5524,13 @@ elif page == "Forecast Service":
                     )
 
 
-                    b.metric(
+                    metric_2.metric(
                         "Matched",
                         matched
                     )
 
 
-                    c.metric(
+                    metric_3.metric(
                         "Match Rate",
                         fmt_pct(
                             matched
@@ -7120,7 +5580,7 @@ elif page == "Forecast Service":
             except Exception as exc:
 
                 st.error(
-                    f"Unable to process the request file: {exc}"
+                    f"Unable to process request file: {exc}"
                 )
 
 
@@ -7130,20 +5590,15 @@ elif page == "Forecast Service":
 
 elif page == "Application Governance":
 
-    hero(
+    page_intro(
         "Application Governance",
 
         (
-            "Verify analytical data, forecast outputs, production model "
-            "artifacts and runtime dependencies used by the deployed application."
+            "Verify data assets, forecast outputs, model files "
+            "and runtime dependencies used by the deployed application."
         ),
 
-        [
-            "Asset Readiness",
-            "Runtime Health",
-            "Deployment Evidence",
-            "Auditability"
-        ]
+        "Deployment readiness and auditability"
     )
 
 
@@ -7232,16 +5687,7 @@ elif page == "Application Governance":
             "pandas",
 
         "NumPy":
-            "numpy",
-
-        "Plotly":
-            "plotly",
-
-        "Joblib":
-            "joblib",
-
-        "TensorFlow":
-            "tensorflow"
+            "numpy"
     }
 
 
@@ -7268,12 +5714,12 @@ elif page == "Application Governance":
     )
 
 
-    a, b, c, d = (
+    metric_1, metric_2, metric_3, metric_4 = (
         st.columns(4)
     )
 
 
-    a.metric(
+    metric_1.metric(
         "Historical Intelligence",
         (
             "Ready"
@@ -7283,7 +5729,7 @@ elif page == "Application Governance":
     )
 
 
-    b.metric(
+    metric_2.metric(
         "Forecast Intelligence",
         (
             "Ready"
@@ -7293,7 +5739,7 @@ elif page == "Application Governance":
     )
 
 
-    c.metric(
+    metric_3.metric(
         "Model Package",
         (
             "Ready"
@@ -7303,8 +5749,8 @@ elif page == "Application Governance":
     )
 
 
-    d.metric(
-        "Dependencies",
+    metric_4.metric(
+        "Core Dependencies",
         (
             f"{dependency_register['Status'].eq('Available').sum()}"
             f"/"
@@ -7335,12 +5781,52 @@ elif page == "Application Governance":
         )
 
 
+        missing = (
+            asset_register.loc[
+                asset_register[
+                    "Status"
+                ]
+                .eq(
+                    "Missing"
+                ),
+
+                "Asset"
+            ]
+            .tolist()
+        )
+
+
+        if missing:
+
+            st.warning(
+                "Missing or undetected assets: "
+                +
+                ", ".join(
+                    missing
+                )
+            )
+
+
+        else:
+
+            st.success(
+                "All registered application assets were detected."
+            )
+
+
     with dependencies_tab:
 
         st.dataframe(
             dependency_register,
             use_container_width=True,
             hide_index=True
+        )
+
+
+        st.success(
+            "This deployment-safe version uses native Streamlit charts. "
+            "Plotly is not required, so the previous Plotly "
+            "ModuleNotFoundError cannot block application startup."
         )
 
 
@@ -7361,7 +5847,7 @@ elif page == "Application Governance":
                 ],
 
                 [
-                    "Session",
+                    "Session Time",
                     datetime.now()
                     .strftime(
                         "%Y-%m-%d %H:%M"
